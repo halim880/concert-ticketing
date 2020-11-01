@@ -6,6 +6,8 @@ use App\Billing\NotEnoughTicketsExeption;
 use App\Billing\PaymentFailedException;
 use App\Billing\PaymentGateway;
 use App\Models\Consert;
+use App\Models\Order;
+use App\Models\Reservation;
 use Illuminate\Http\Request;
 
 class ConsertsOrderController extends Controller
@@ -28,17 +30,20 @@ class ConsertsOrderController extends Controller
     
         try {
             
-            $order = $consert->orderTickets(request('email'), request('ticket_quantity'));
-            $this->paymentGateway->charge(request('ticket_quantity')* $consert->ticket_price, request('payment_token'));
-            return response()->json([], 201);
+            $reservation = new Reservation($consert->reserveTicket(request('ticket_quantity')), request('email'));
+
+            $order = $reservation->complete($this->paymentGateway, request('payment_token'));
+
+            return response()->json(json_encode($order), 201);
         }
 
         catch (PaymentFailedException $th) {
-            $order->cancel();
+            $reservation->cancel();
             return response()->json([], 422);
         }
         
         catch (NotEnoughTicketsExeption $th) {
+ 
             return response()->json([], 422);
         }
 

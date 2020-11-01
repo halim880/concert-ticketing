@@ -11,15 +11,52 @@ class Order extends Model
 
     protected $guarded = [];
 
+    public static function forTickets($tickets, $email, $amount){
+        $order = self::create([
+                'email'=> $email,
+                'amount'=> $amount,
+            ]);
+
+        foreach ($tickets as $ticket) {
+            $order->tickets()->save($ticket);
+        }
+
+        return $order;
+    }
+
+    public static function fromReservation($reservation){
+        $order = self::create([
+                'email'=> $reservation->email,
+                'amount'=> $reservation->totalCost(),
+            ]);
+
+        foreach ($reservation->getTickets() as $ticket) {
+            $order->tickets()->save($ticket);
+        }
+
+        return $order;
+    }
+
     public function tickets(){
         return $this->hasMany(Ticket::class);
     }
 
-    public function cancel(){
-        foreach($this->tickets as $ticket){
-            $ticket->update(['order_id'=>null]);
-        }
-
-        $this->delete();
+    public function consert(){
+        return $this->belongsTo(Consert::class);
     }
+
+    public function ticketQuantity(){
+        return $this->tickets()->count();
+    }
+
+    public function toArray()
+    {
+        return [
+            'email'=> $this->email,
+            'ticket_quantity'=> $this->ticketQuantity(),
+            'amount'=> $this->amount,
+        ];
+    }
+
+
 }

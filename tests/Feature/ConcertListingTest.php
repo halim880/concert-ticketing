@@ -92,9 +92,10 @@ class ConcertListingTest extends TestCase
     public function remainimg_tickets_does_not_include_tickets_having_order_id(){
         $this->withoutExceptionHandling();
 
-        $consert = Consert::factory()->published()->create();
+        $consert = Consert::factory()->published()->create(['ticket_price'=>1000]);
         $consert->addTickets(50);
-        $consert->orderTickets('akash@gmail.com', 30);
+
+        $consert->orderTickets('akash@gmail.com', 30, 30000);
 
         $this->assertEquals(20, $consert->remainingTickets());
     }

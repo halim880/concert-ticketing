@@ -35,7 +35,7 @@ class Consert extends Model
     }
 
     public function orders(){
-        return $this->hasMany(Order::class);
+        return $this->belongsToMany(Order::class, 'tickets');
     }
 
     public function tickets(){
@@ -50,23 +50,42 @@ class Consert extends Model
     }
 
     public function remainingTickets(){
-        return $this->tickets()->whereNull('order_id')->count();
+        return $this->tickets()->available()->count();
     }
 
-    public function orderTickets($email, $count){
+    public function orderTickets($email, $ticketQuantity){
+        $tickets = $this->findTickets($ticketQuantity);
+        return $this->createOrder($email, $tickets);
+    }
 
+    public function reserveTicket($quantity){
+        return $this->findTickets($quantity)->each(function ($ticket){
+            $ticket->reserve();
+        });
+    }
 
-        if($this->remainingTickets() < $count){
+    public function findTickets($ticketQuantity){
+
+        if($this->remainingTickets() < $ticketQuantity){
             throw new NotEnoughTicketsExeption;
         }
 
-        $tickets = $this->tickets()->take($count)->get();
-        $order = $this->orders()->create(['email'=> $email]);
+        return $this->tickets()->take($ticketQuantity)->get();
+    }
+
+    public function createOrder($email, $tickets){
+
+        $order = Order::forTickets($tickets, $email, $tickets->sum('price'));
 
         foreach ($tickets as $ticket) {
             $order->tickets()->save($ticket);
         }
 
         return $order;
+    }
+
+    public function hasOrderFor($email){
+        if($this->orders()->where('email', $email)->get()->first()) return true;
+        else return false;
     }
 }

@@ -27,5 +27,4 @@ class TicketPurchaseTest extends TestCase
         }
         $this->assertTrue(true);
     }
-
 }
