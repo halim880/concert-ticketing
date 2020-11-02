@@ -43,7 +43,7 @@
                     </div>
 
                     <div class="grid gap-1 max-w-xl mt-4 px-4 py-4 font-mono text-sm bg-gray-100 rounded-lg">
-                        <div v-for="code in recoveryCodes">
+                        <div v-for="code in recoveryCodes" :key="code">
                             {{ code }}
                         </div>
                     </div>
@@ -87,11 +87,11 @@
 </template>
 
 <script>
-    import JetActionSection from './../../Jetstream/ActionSection'
-    import JetButton from './../../Jetstream/Button'
-    import JetConfirmsPassword from './../../Jetstream/ConfirmsPassword'
-    import JetDangerButton from './../../Jetstream/DangerButton'
-    import JetSecondaryButton from './../../Jetstream/SecondaryButton'
+    import JetActionSection from '@/Jetstream/ActionSection'
+    import JetButton from '@/Jetstream/Button'
+    import JetConfirmsPassword from '@/Jetstream/ConfirmsPassword'
+    import JetDangerButton from '@/Jetstream/DangerButton'
+    import JetSecondaryButton from '@/Jetstream/SecondaryButton'
 
     export default {
         components: {
