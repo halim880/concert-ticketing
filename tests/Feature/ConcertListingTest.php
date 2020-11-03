@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\Consert;
+use App\Models\Ticket;
 use Carbon\Carbon;
 
 class ConcertListingTest extends TestCase
@@ -93,9 +94,9 @@ class ConcertListingTest extends TestCase
         $this->withoutExceptionHandling();
 
         $consert = Consert::factory()->published()->create(['ticket_price'=>1000]);
-        $consert->addTickets(50);
 
-        $consert->orderTickets('akash@gmail.com', 30, 30000);
+        $consert->tickets()->saveMany(Ticket::factory(30)->create(['order_id'=>1]));
+        $consert->tickets()->saveMany(Ticket::factory(20)->create());
 
         $this->assertEquals(20, $consert->remainingTickets());
     }

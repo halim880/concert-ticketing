@@ -32,8 +32,8 @@ class Reservation extends Model
 
 
     public function complete($paymentGateway, $token){
-        $paymentGateway->charge($this->totalCost(), $token);
-        return  Order::fromReservation($this);
+        $charge = $paymentGateway->charge($this->totalCost(), $token);
+        return  Order::forTickets($this->getTickets(), $this->email, $charge);
     }
 
     public function cancel(){

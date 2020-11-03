@@ -10,15 +10,20 @@ use App\Models\Consert;
 
 class FakePaymentGatewayTest extends TestCase
 {
+
+    protected function getPaymentGateway(){
+        return new FakePaymentGateway;
+    }
+
     /** @test */
     public function charges_with_valid_token_are_successful(){
         $this->withoutExceptionHandling();
 
-        $paymentGateway = new FakePaymentGateway;
+        $paymentGateway = $this->getPaymentGateway();
 
-        $paymentGateway->charge(2300, $paymentGateway->getValidTestToken());
+        $charge = $paymentGateway->charge(2300, $paymentGateway->getValidTestToken('1234567890124242'));
 
-        $this->assertEquals(2300, $paymentGateway->totalCharge());
+        $this->assertEquals(2300, $charge->amount());
     }
 
 
@@ -40,5 +45,17 @@ class FakePaymentGatewayTest extends TestCase
         $this->assertEquals($callbackTimes, 1);
 
         $this->assertEquals(5000, $paymentGateway->totalCharge());
+    }
+
+     /** @test */
+
+     public function can_get_details_of_a_successful_charge(){
+        $paymentGateway = $this->getPaymentGateway();
+        $charge = $paymentGateway->charge(2500, $paymentGateway->getValidTestToken('1234567890124242'));
+
+
+        $this->assertEquals('4242', $charge->getLastFour());
+        $this->assertEquals(2500, $charge->amount());
+
     }
 }

@@ -19,6 +19,10 @@ class StripePaymentGatewayTest extends TestCase
         $this->lastCharge = $this->lastCharge();
     }
 
+    protected function getPaymentGateway(){
+        return new StripePaymentGateway(env('STRIPE_SECRET'));
+    }
+
     /**
      * A basic feature test example.
      *@test
@@ -26,9 +30,9 @@ class StripePaymentGatewayTest extends TestCase
      */
     public function charges_with_valid_payment_token_are_success()
     {
-        $paymentGateway = new StripePaymentGateway(env('STRIPE_SECRET'));
+        $paymentGateway = $this->getPaymentGateway();
 
-        $paymentGateway->charge(2500, $this->token());
+        $paymentGateway->charge(2500, $paymentGateway->getValidTestToken());
        
         $this->assertCount(1, $this->newCharges());
 
@@ -52,6 +56,19 @@ class StripePaymentGatewayTest extends TestCase
         $this->fail('Payment failed exception is not thrown');
     }
 
+
+    /** @test */
+
+    public function can_get_details_of_a_successful_charge(){
+        $paymentGateway = $this->getPaymentGateway();
+        $charge = $paymentGateway->charge(2500, $paymentGateway->getValidTestToken());
+
+        $this->assertEquals('4242', $charge->getLastFour());
+
+        $this->assertEquals(2500, $charge->amount());
+
+    }
+
     private function newCharges(){
         return $this->stripe->charges->all([
             'limit' => 1,
@@ -65,14 +82,5 @@ class StripePaymentGatewayTest extends TestCase
         ])['data'][0];
     }
 
-    private function token(){
-        return $this->stripe->tokens->create([
-            'card' => [
-              'number' => '4242424242424242',
-              'exp_month' => 11,
-              'exp_year' => date('Y')+1,
-              'cvc' => '123',
-            ],
-          ]);
-    }
+    
 }

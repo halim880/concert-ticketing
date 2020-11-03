@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\http\Controllers\ConsertsController;
+use App\http\Controllers\OrdersController;
 use App\http\Controllers\ConsertsOrderController;
 /*
 |--------------------------------------------------------------------------
@@ -25,3 +26,5 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
 Route::resource('consert', ConsertsController::class);
 
 Route::post('/consert/{id}/orders', [ConsertsOrderController::class, 'store']);
+
+Route::get('/orders/{confirmationNumber}', [OrdersController::class, 'show']);

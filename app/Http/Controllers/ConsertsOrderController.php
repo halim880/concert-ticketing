@@ -34,7 +34,7 @@ class ConsertsOrderController extends Controller
 
             $order = $reservation->complete($this->paymentGateway, request('payment_token'));
 
-            return response()->json(json_encode($order), 201);
+            return response()->json($order->toArray(), 201);
         }
 
         catch (PaymentFailedException $th) {

@@ -48,22 +48,21 @@ class ReservationTest extends TestCase
     }
 
         /** @test */
-    public function cannot_reserved_tickets_that_already_resersed(){
+    public function cannot_reserved_tickets_that_already_reserved(){
 
         $this->withoutExceptionHandling();
-        $consert = Consert::factory()->published()->create();
-        $consert->addTickets(3);
-        $this->assertEquals(3, $consert->remainingTickets());
 
+        $consert = Consert::factory()->published()->create(['ticket_price'=>1000]);
 
-        $consert->orderTickets('akash@gmail.com', 2);
+        $consert->tickets()->saveMany(Ticket::factory(3)->create(['order_id'=>1]));
+        $consert->tickets()->saveMany(Ticket::factory(2)->create());
 
         try {
-            $consert->reserveTicket(2);
+            $consert->reserveTicket(3);
         } 
         catch (NotEnoughTicketsExeption $th) {
 
-            $this->assertEquals(1, $consert->remainingTickets());
+            $this->assertEquals(2, $consert->remainingTickets());
             return ;
         }   
 

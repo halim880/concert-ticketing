@@ -5,11 +5,15 @@ namespace Tests\Feature;
 use App\Billing\FakePaymentGateway;
 use App\Billing\NotEnoughTicketsExeption;
 use App\Billing\PaymentGateway;
+use App\Facades\OrderConfirmationNumber;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\Consert;
 use App\Models\Order;
+use App\Models\OrderConfirmationNumberGenerator;
+use App\Models\Ticket;
 use Carbon\Carbon;
+use Mockery;
 
 class ParchaseTicketTest extends TestCase
 {
@@ -20,19 +24,30 @@ class ParchaseTicketTest extends TestCase
         $paymentGateway = new FakePaymentGateway;
         $this->app->instance(PaymentGateway::class, $paymentGateway);
 
+
+
+
         $consert = Consert::factory()->published()->create(['ticket_price'=> 3039]);
         $consert->addTickets(50);
-        
+
+        OrderConfirmationNumber::shouldReceive('generate')->andReturn('ORDERCONFIRMATION1234');
+
+
         $response = $this->json('POST', "consert/{$consert->id}/orders", [
             'email'=> 'akash@gmail.com',
             'ticket_quantity'=> 3,
             'payment_token'=> $paymentGateway->getValidTestToken(),
         ]);
+
+
+
+        // dd($response);
         
         // $response->assertJson([
         //     'email'=> 'akash@gmail.com',
-        //     'ticket_quantity'=> 3,
-        //     'total_charge'=> 9117
+        //     'ticket_quantity'=> 3, 
+        //     'total_charge'=> 9117,
+        //     'confirmation_number'=> 'ORDERCONFIRMATION1234',
         // ]);
 
         $this->assertEquals(9117, $paymentGateway->totalCharge());
@@ -61,17 +76,6 @@ class ParchaseTicketTest extends TestCase
         $this->assertEquals(0, $consert->orders->count());
         $this->assertEquals(0, $paymentGateway->totalCharge());
     }
-        /** @test */
-    public function customers_can_order_consert_ticket(){
-        $consert = Consert::factory()->create();
-        $consert->addTickets(50);
-
-        $order = $consert->orderTickets('akash@gmail.com', 3);
-
-        $this->assertEquals(3, $order->tickets->count());
-        $this->assertEquals('akash@gmail.com', $order->email);
-    }
-
         /** @test */
     public function email_is_required_to_purchase_ticket(){
         // $this->withoutExceptionHandling();
@@ -180,14 +184,15 @@ class ParchaseTicketTest extends TestCase
     public function trying_to_purchase_more_tickets_than_remaining_throw_exception(){
 
         $consert = Consert::factory()->published()->create();
-        $consert->addTickets(20);
+        $consert->addTickets(3);
+
         try {
-            $consert->orderTickets('halim@gmail.com', 30);
+            $consert->reserveTicket(4, 'halim@gmail.com');
         } 
         catch (NotEnoughTicketsExeption $th) {
             $order = $consert->orders()->where('email', 'halim@gmail.com')->first();
             $this->assertNull($order);
-            $this->assertEquals(20, $consert->remainingTickets());
+            $this->assertEquals(3, $consert->remainingTickets());
             return ;
         }
 
@@ -197,17 +202,16 @@ class ParchaseTicketTest extends TestCase
     /** @test */
     public function tickets_cannot_order_those_are_already_purchased(){
 
-        $consert = Consert::factory()->published()->create();
-        $consert->addTickets(20);
-        $consert->orderTickets('akash@gmail.com', 15);
+        $consert = Consert::factory()->published()->create(['ticket_price'=>1000]);
+
+        $consert->tickets()->saveMany(Ticket::factory(30)->create(['order_id'=>1]));
+        $consert->tickets()->saveMany(Ticket::factory(20)->create());
 
         try {
-            $consert->orderTickets('halim@gmail.com', 6);
+            $consert->reserveTicket(21, 'halim@gmail.com');
         } 
         catch (NotEnoughTicketsExeption $th) {
-            $order = $consert->orders()->where('email', 'halim@gmail.com')->first();
-            $this->assertNull($order);
-            $this->assertEquals(5, $consert->remainingTickets());
+            $this->assertEquals(20, $consert->remainingTickets());
             return ;
         }
 
@@ -263,4 +267,6 @@ class ParchaseTicketTest extends TestCase
     public function orderTickets($consert, $params){
         return $this->json('POST', "/consert/{$consert->id}/orders", $params);
     }
+
+
 }

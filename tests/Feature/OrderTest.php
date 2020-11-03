@@ -2,11 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Facades\TicketCode;
+use App\Models\Charge;
 use App\Models\Consert;
 use App\Models\Order;
 use App\Models\Ticket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Vinkla\Hashids\Facades\Hashids;
+
 use Illuminate\Foundation\Testing\WithFaker;
+use Mockery;
 use Tests\TestCase;
 
 class OrderTest extends TestCase
@@ -18,12 +23,19 @@ class OrderTest extends TestCase
      * @return void
      */
     public function customers_can_order_consert_ticket(){
-        $consert = Consert::factory()->create();
-        $consert->addTickets(50);
+        $this->withoutExceptionHandling();
 
-        $order = $consert->orderTickets('akash@gmail.com', 3);
+        $consert = Consert::factory()->published()->create(['ticket_price'=>1000]);
+        $consert->addTickets(3);
 
-        $this->assertEquals(3, $order->tickets->count());
+        $order = Order::factory()->create();
+
+        $order->tickets()->saveMany($consert->tickets->take(2));
+
+        $this->assertEquals(1, $consert->remainingTickets());
+
+        $this->assertEquals(2, $order->tickets->count());
+        
         $this->assertEquals('akash@gmail.com', $order->email);
     }
 
@@ -31,15 +43,28 @@ class OrderTest extends TestCase
     public function converting_to_array()
     {
         $consert = Consert::factory()->published()->create(['ticket_price'=> 1200]);
-        $consert->addTickets(5);
-        $order = $consert->orderTickets('akash@gmail.com', 5);
+        $consert->addTickets(3);
+
+        $order = Order::factory()->create();
+
+        $order->tickets()->saveMany([
+            Ticket::factory()->create(['code'=> 'TICKETCODE1']),
+            Ticket::factory()->create(['code'=> 'TICKETCODE2']),
+            Ticket::factory()->create(['code'=> 'TICKETCODE3']),
+        ]);
 
         $result = $order->toArray();
 
+        // dd($result);
         $this->assertEquals([
             'email'=> 'akash@gmail.com',
-            'ticket_quantity'=> 5,
-            'amount'=> 6000,
+            'amount'=> 3600,
+            'confirmation_number' => 'ORDERCONFIRMATION1234',
+            'tickets'=> [
+                ['code'=> 'TICKETCODE1'],
+                ['code'=> 'TICKETCODE2'],
+                ['code'=> 'TICKETCODE3'],
+            ],
         ], $result);
         
     }
@@ -47,17 +72,25 @@ class OrderTest extends TestCase
     /** @test */
     public function creating_an_order_for_tickets()
     {
-        $consert = Consert::factory()->published()->create(['ticket_price'=> 1200]);
-        $consert->addTickets(5);
 
-        $this->assertEquals(5, $consert->remainingTickets());
+        $tickets = collect([
+            Mockery::spy(Ticket::class),
+            Mockery::spy(Ticket::class),
+            Mockery::spy(Ticket::class),
+        ]);
 
-        $order = Order::forTickets($consert->findTickets(3), 'akash@gmail.com', 3600);
+        $charge = new Charge([
+            'amount'=> 3600,
+            'card_last_four'=> 4242,
+        ]);
+
+        $order = Order::forTickets($tickets, 'akash@gmail.com', $charge);
 
         $this->assertEquals('akash@gmail.com', $order->email);
         $this->assertEquals(3600, $order->amount);
-        $this->assertEquals(3, $order->ticketQuantity());
-        $this->assertEquals(2, $consert->remainingTickets());
+        $this->assertEquals(4242, $order->card_last_four);
+
+        $tickets->each->shouldHaveReceived('claimFor', [$order]);
     }
 
 
@@ -69,4 +102,5 @@ class OrderTest extends TestCase
         $ticket->reserve();
         $this->assertNotNull($ticket->reserved_at);
     }
+
 }

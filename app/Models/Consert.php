@@ -53,10 +53,10 @@ class Consert extends Model
         return $this->tickets()->available()->count();
     }
 
-    public function orderTickets($email, $ticketQuantity){
-        $tickets = $this->findTickets($ticketQuantity);
-        return $this->createOrder($email, $tickets);
-    }
+    // public function orderTickets($email, $ticketQuantity){
+    //     $tickets = $this->findTickets($ticketQuantity);
+    //     return $this->createOrder($email, $tickets);
+    // }
 
     public function reserveTicket($quantity){
         return $this->findTickets($quantity)->each(function ($ticket){
